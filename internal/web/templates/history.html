@@ -1,0 +1,12 @@
+{{define "page"}}history{{end}}
+{{define "content"}}
+<section class="container-narrow pb-16 pt-10">
+  <h1 class="text-[24px] font-[650] tracking-tight">History</h1>
+  <p class="mt-1.5 text-fg-2">Pastes created in this browser. This list lives only in this browser and is never sent to the server.</p>
+  <div id="history-list" class="mt-6" aria-live="polite">
+    <noscript><p class="text-fg-2">History needs JavaScript.</p></noscript>
+  </div>
+  <p id="history-empty" class="mt-6 text-fg-2" hidden>No pastes yet. <a href="/" class="font-semibold text-primary underline underline-offset-2">Create one</a>.</p>
+  <button type="button" id="history-clear" class="btn btn-ghost mt-6" hidden>Clear history</button>
+</section>
+{{end}}

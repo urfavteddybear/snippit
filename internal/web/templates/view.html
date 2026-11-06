@@ -1,0 +1,85 @@
+{{define "page"}}view{{end}}
+{{define "content"}}
+{{- $p := .Paste}}
+{{template "created" .}}
+<section id="paste" class="container-page flex flex-1 flex-col pb-2"
+         data-id="{{$p.ID}}" data-url="{{.URL}}" data-language="{{$p.Language}}" data-filename="{{.Filename}}"
+         data-has-delete-key="{{.HasDeleteKey}}">
+
+  <div class="flex flex-col gap-3 border-b border-border py-3.5 lg:flex-row lg:items-center lg:justify-between">
+    <div class="min-w-0">
+      <h1 class="truncate text-[17px] font-semibold">{{if $p.Title}}{{$p.Title}}{{else}}<span class="text-fg-2">Untitled paste</span>{{end}}</h1>
+      <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+        <span class="font-semibold text-fg-2">{{langName $p.Language}}</span>
+        <span aria-hidden="true">·</span>
+        <span>Created <time datetime="{{iso $p.CreatedAt}}" title="{{utc $p.CreatedAt}}">{{ago $p.CreatedAt}}</time></span>
+        <span aria-hidden="true">·</span>
+        {{- if $p.ExpiresAt}}
+        <span>Expires <time datetime="{{iso $p.ExpiresAt}}" title="{{utc $p.ExpiresAt}}">{{until $p.ExpiresAt}}</time></span>
+        {{- else}}
+        <span>Never expires</span>
+        {{- end}}
+        <span aria-hidden="true">·</span>
+        <span>{{.Lines}} {{if eq .Lines 1}}line{{else}}lines{{end}} · {{bytes $p.Size}}</span>
+        {{- if $p.Encrypted}}
+        <span aria-hidden="true">·</span>
+        <span class="inline-flex items-center gap-1 text-warning"><span class="inline-flex size-3.5">{{template "i-lock"}}</span>Encrypted</span>
+        {{- end}}
+      </p>
+    </div>
+
+    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" role="toolbar" aria-label="Paste actions">
+      <button type="button" class="btn btn-secondary" data-action="copy">{{template "i-copy"}}Copy</button>
+      <button type="button" class="btn btn-secondary" data-action="copy-link">{{template "i-link"}}Copy link</button>
+      {{- if .Unlocked}}
+      <button type="button" class="btn btn-secondary" data-action="raw">{{template "i-file"}}Raw</button>
+      <button type="button" class="btn btn-secondary" data-action="download">{{template "i-download"}}Download</button>
+      {{- else}}
+      <a class="btn btn-secondary" href="/raw/{{$p.ID}}" target="_blank" rel="noopener">{{template "i-file"}}Raw</a>
+      <a class="btn btn-secondary" href="/download/{{$p.ID}}" download>{{template "i-download"}}Download</a>
+      {{- end}}
+      <button type="button" class="btn btn-secondary" data-action="wrap" aria-pressed="false">{{template "i-wrap"}}Wrap</button>
+      <button type="button" class="btn btn-secondary" data-action="qr">{{template "i-qr"}}QR</button>
+      <button type="button" class="btn btn-danger" data-action="delete" hidden>{{template "i-trash"}}Delete</button>
+    </div>
+  </div>
+
+  {{- if .Markdown}}
+  <div role="tablist" aria-label="View mode" class="mt-3 inline-flex gap-1 self-start rounded-md border border-border bg-surface p-0.5">
+    <button type="button" role="tab" id="tab-preview" aria-controls="panel-preview" aria-selected="true" data-view="preview" class="tab">Preview</button>
+    <button type="button" role="tab" id="tab-code" aria-controls="panel-code" aria-selected="false" data-view="code" class="tab" tabindex="-1">Code</button>
+  </div>
+  <div id="panel-preview" role="tabpanel" aria-labelledby="tab-preview" class="editor-frame prose-md mt-3">{{.Markdown}}</div>
+  {{- end}}
+
+  <div id="panel-code" class="editor-frame mt-3"{{if .Markdown}} role="tabpanel" aria-labelledby="tab-code" hidden{{end}}>
+    <pre id="source" class="code-fallback"><code>{{.Content}}</code></pre>
+    <div id="viewer" class="editor-mount" hidden></div>
+  </div>
+
+  <dialog id="qr-dialog" class="dialog m-auto" aria-labelledby="qr-title">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 id="qr-title" class="text-[15px] font-semibold">Scan to open</h2>
+      <button type="button" class="btn btn-ghost !h-8 !px-2" data-action="close-dialog" aria-label="Close">{{template "i-x"}}</button>
+    </div>
+    <img data-src="/qr/{{$p.ID}}" alt="QR code linking to this paste" width="320" height="320" class="aspect-square w-full rounded-md border border-border">
+    <p class="mt-3 break-all font-mono text-[12px] text-fg-2">{{.URL}}</p>
+  </dialog>
+
+  <dialog id="delete-dialog" class="dialog m-auto" aria-labelledby="delete-title">
+    <form method="dialog" id="delete-form">
+      <h2 id="delete-title" class="text-[15px] font-semibold">Delete this paste?</h2>
+      <p class="mt-1.5 text-[13px] text-fg-2">It will be removed permanently. This cannot be undone.</p>
+      <div id="delete-key-field" class="mt-4" hidden>
+        <label for="delete-key-input" class="label">Delete key</label>
+        <input id="delete-key-input" type="password" class="input" maxlength="256" autocomplete="off" aria-describedby="delete-error">
+      </div>
+      <p id="delete-error" role="alert" class="mt-2 text-[13px] text-danger empty:mt-0"></p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button type="button" class="btn btn-secondary" data-action="close-dialog">Cancel</button>
+        <button type="submit" class="btn btn-danger-solid" id="delete-confirm">Delete</button>
+      </div>
+    </form>
+  </dialog>
+</section>
+{{end}}

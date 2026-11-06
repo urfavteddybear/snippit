@@ -1,0 +1,57 @@
+{{define "layout" -}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .PageTitle}}{{.PageTitle}} · Snippit{{else}}Snippit · Your code. One link away.{{end}}</title>
+  <meta name="description" content="A fast, simple place to share code snippets, logs, and configuration files. No signup.">
+  <meta name="theme-color" content="#0F5C43">
+  <meta name="csp-nonce" content="{{.Nonce}}">
+  <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false,"selfRequestsOnly":true,"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"(400|413|422|429|507)","swap":true,"error":false},{"code":"[45]..","swap":false,"error":true}]}'>
+  <link rel="preload" href="{{asset "fonts.css"}}" as="style">
+  <link rel="stylesheet" href="{{asset "fonts.css"}}">
+  <link rel="stylesheet" href="{{asset "app.css"}}">
+  <script type="module" src="{{asset "app.js"}}"></script>
+</head>
+<body data-page="{{block "page" .}}{{end}}">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn btn-secondary">Skip to content</a>
+  <header class="site-header">
+    <div class="container-page flex h-14 items-center justify-between">
+      <a href="/" class="rounded-md text-[20px] font-bold tracking-tight no-underline">Snippit</a>
+      <nav aria-label="Main" class="flex items-center gap-1">
+        <a href="/docs" class="nav-link"{{if eq .Active "docs"}} aria-current="page"{{end}}>Docs</a>
+        <a href="/history" class="nav-link"{{if eq .Active "history"}} aria-current="page"{{end}}>History</a>
+        {{- if .GitHubURL}}
+        <a href="{{.GitHubURL}}" class="nav-link" rel="noopener noreferrer">GitHub</a>
+        {{- end}}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="flex flex-1 flex-col">
+    {{block "content" .}}{{end}}
+  </main>
+
+  <footer class="container-page flex flex-wrap items-center gap-x-4 gap-y-1 py-4 text-[12px] text-muted">
+    <p>Snippit · Your code. One link away. No signup.</p>
+    <a href="/docs" class="underline-offset-2 hover:text-fg hover:underline">API</a>
+    <a href="/privacy" class="underline-offset-2 hover:text-fg hover:underline">Privacy</a>
+  </footer>
+  <div id="toasts" class="toast-region" role="status" aria-live="polite"></div>
+</body>
+</html>
+{{- end}}
+
+{{define "created"}}{{if .DeletionToken}}<div id="created" hidden data-id="{{.Paste.ID}}" data-token="{{.DeletionToken}}" data-title="{{.Paste.Title}}" data-language="{{langName .Paste.Language}}" data-created="{{.Paste.CreatedAt.Unix}}" data-expires="{{if .Paste.ExpiresAt}}{{.Paste.ExpiresAt.Unix}}{{end}}"></div>{{end}}{{end}}
+
+{{define "i-copy"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>{{end}}
+{{define "i-link"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>{{end}}
+{{define "i-file"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>{{end}}
+{{define "i-download"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>{{end}}
+{{define "i-wrap"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h15a3 3 0 1 1 0 6h-4M3 18h7"/><path d="m16 16-2 2 2 2"/></svg>{{end}}
+{{define "i-qr"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>{{end}}
+{{define "i-trash"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>{{end}}
+{{define "i-lock"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>{{end}}
+{{define "i-x"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>{{end}}
+{{define "i-arrow"}}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>{{end}}

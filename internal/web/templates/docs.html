@@ -1,0 +1,80 @@
+{{define "page"}}docs{{end}}
+{{define "content"}}
+<article class="container-narrow doc pb-16 pt-10">
+  <h1 class="text-[28px] font-[650] tracking-tight">API</h1>
+  <p class="mt-2">Create and read pastes from scripts and the terminal. No account or API key needed.</p>
+
+  <h2>Quick start</h2>
+  <pre><code>curl -s {{.BaseURL}}/api/pastes \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"hello.js","content":"console.log(1)","language":"auto","expiration":"1d"}'</code></pre>
+  <p>Pipe a file with <code>jq</code>:</p>
+  <pre><code>jq -Rs '{content: ., expiration: "7d"}' app.log | curl -s {{.BaseURL}}/api/pastes -H 'Content-Type: application/json' -d @-</code></pre>
+
+  <h2>Endpoints</h2>
+
+  <h3><span class="endpoint"><span class="method">POST</span>/api/pastes</span></h3>
+  <table>
+    <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>content</code></td><td>string</td><td>Required. UTF-8 text, at most {{bytes (int64 .MaxBytes)}}.</td></tr>
+      <tr><td><code>title</code></td><td>string</td><td>Optional, at most 120 characters.</td></tr>
+      <tr><td><code>language</code></td><td>string</td><td><code>auto</code> (default) or a language ID below.</td></tr>
+      <tr><td><code>expiration</code></td><td>string</td><td>{{range $i, $e := .Expirations}}{{if $i}}, {{end}}<code>{{$e.Key}}</code>{{end}}. Default <code>7d</code>.</td></tr>
+      <tr><td><code>password</code></td><td>string</td><td>Optional. Encrypts the content at rest.</td></tr>
+      <tr><td><code>delete_key</code></td><td>string</td><td>Optional. Lets anyone who knows it delete the paste.</td></tr>
+    </tbody>
+  </table>
+  <p>Returns <code>201 Created</code>:</p>
+  <pre><code>{
+  "id": "a8Kx92LmQ3",
+  "url": "{{.BaseURL}}/a8Kx92LmQ3",
+  "raw_url": "{{.BaseURL}}/raw/a8Kx92LmQ3",
+  "language": "javascript",
+  "expires_at": 1794000000,
+  "deletion_token": "…"
+}</code></pre>
+  <p><code>expires_at</code> is a Unix timestamp (UTC), or <code>null</code> for pastes that never expire. <code>deletion_token</code> also deletes the paste and is never shown again. Keep it if you did not set a <code>delete_key</code>.</p>
+
+  <h3><span class="endpoint"><span class="method">GET</span>/api/pastes/:id</span></h3>
+  <p>Returns metadata and content as JSON. For a password-protected paste, send the password in the <code>X-Paste-Password</code> header.</p>
+
+  <h3><span class="endpoint"><span class="method">GET</span>/raw/:id</span></h3>
+  <p>Returns the original content as <code>text/plain</code>. Password-protected pastes also accept <code>X-Paste-Password</code>.</p>
+  <pre><code>curl -s {{.BaseURL}}/raw/a8Kx92LmQ3 | sh   # read it before you run it</code></pre>
+
+  <h3><span class="endpoint"><span class="method">GET</span>/download/:id</span></h3>
+  <p>Same as raw, served as a file attachment.</p>
+
+  <h3><span class="endpoint"><span class="method">DELETE</span>/api/pastes/:id</span></h3>
+  <p>Deletes a paste. Send either the delete key you chose in <code>X-Delete-Key</code>, or the <code>deletion_token</code> from the create response in <code>X-Delete-Token</code>. Returns <code>204 No Content</code>.</p>
+  <pre><code>curl -X DELETE {{.BaseURL}}/api/pastes/a8Kx92LmQ3 -H 'X-Delete-Key: my-secret-key'</code></pre>
+
+  <h2>Errors</h2>
+  <p>Errors share one JSON shape:</p>
+  <pre><code>{ "error": { "code": "PASTE_NOT_FOUND", "message": "The requested paste does not exist." } }</code></pre>
+  <table>
+    <thead><tr><th>Status</th><th>Code</th></tr></thead>
+    <tbody>
+      <tr><td>400</td><td><code>INVALID_REQUEST</code>, <code>INVALID_CONTENT</code>, <code>INVALID_TITLE</code>, <code>INVALID_LANGUAGE</code>, <code>INVALID_EXPIRATION</code>, <code>INVALID_DELETE_KEY</code></td></tr>
+      <tr><td>401</td><td><code>PASSWORD_REQUIRED</code></td></tr>
+      <tr><td>403</td><td><code>INVALID_PASSWORD</code>, <code>INVALID_DELETE_KEY</code></td></tr>
+      <tr><td>404</td><td><code>PASTE_NOT_FOUND</code></td></tr>
+      <tr><td>410</td><td><code>PASTE_EXPIRED</code></td></tr>
+      <tr><td>413</td><td><code>CONTENT_TOO_LARGE</code></td></tr>
+      <tr><td>429</td><td><code>RATE_LIMITED</code></td></tr>
+      <tr><td>500</td><td><code>INTERNAL_ERROR</code></td></tr>
+      <tr><td>507</td><td><code>STORAGE_FULL</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Languages</h2>
+  <p>{{range $i, $l := .Languages}}{{if $i}}, {{end}}<code>{{$l.ID}}</code>{{end}}</p>
+
+  <h2>Limits</h2>
+  <ul>
+    <li>Paste creation is rate-limited per IP address.</li>
+    <li>Maximum paste size is {{bytes (int64 .MaxBytes)}}.</li>
+  </ul>
+</article>
+{{end}}

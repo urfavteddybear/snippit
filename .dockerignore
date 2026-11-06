@@ -1,0 +1,10 @@
+.git
+.env
+data/
+/snippit
+*.db
+*.db-wal
+*.db-shm
+frontend/node_modules/
+internal/web/static/
+backups/

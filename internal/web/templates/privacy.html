@@ -1,0 +1,33 @@
+{{define "page"}}privacy{{end}}
+{{define "content"}}
+<article class="container-narrow doc pb-16 pt-10">
+  <h1 class="text-[28px] font-[650] tracking-tight">Privacy</h1>
+  <p class="mt-2">Snippit is built to collect as little as possible.</p>
+
+  <h2>What we store</h2>
+  <ul>
+    <li>The paste content, title, language, creation time and expiration time.</li>
+    <li>A hash of the deletion token, and a slow hash of the delete key if you set one. Neither is stored in plain text.</li>
+    <li>For password-protected pastes, the content is encrypted with a key derived from your password. The password is never stored. The title is not encrypted.</li>
+  </ul>
+
+  <h2>What we don't collect</h2>
+  <ul>
+    <li>No accounts, emails, or profiles.</li>
+    <li>No analytics, tracking scripts, or third-party requests. Fonts and scripts are served from this site.</li>
+    <li>No public listing of pastes. A paste is reachable only by its link.</li>
+    <li>The History page is kept in your browser's local storage and is never sent to the server.</li>
+  </ul>
+
+  <h2>IP addresses and logs</h2>
+  <p>Your IP address is held in memory for a few minutes to enforce rate limits. It is not written to the database or to application logs. Application logs record the request method, path, status code and timing, never paste content.</p>
+  <p>The operator's reverse proxy may keep standard access logs, subject to the operator's retention settings.</p>
+
+  <h2>Retention</h2>
+  <p>A paste is kept until it expires or is deleted by its creator. Expired pastes are removed from the database by a periodic cleanup job.</p>
+  <p>Deleting a paste removes it from the live database right away. Database backups made before the deletion may still contain it until those backups are rotated.</p>
+
+  <h2>Anyone with the link can read it</h2>
+  <p>Paste links are long and random, but they are not secret by themselves. Use a password for anything sensitive, and avoid pasting credentials.</p>
+</article>
+{{end}}

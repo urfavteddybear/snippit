@@ -1,0 +1,20 @@
+{{define "page"}}unlock{{end}}
+{{define "content"}}
+{{template "created" .}}
+<section class="container-page flex flex-1 justify-center pb-16 pt-16 sm:pt-24">
+  <div class="w-full max-w-[380px]">
+    <span class="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-border bg-surface p-2.5 text-primary">{{template "i-lock"}}</span>
+    <h1 class="text-[20px] font-semibold">{{if .Paste.Title}}{{.Paste.Title}}{{else}}Protected paste{{end}}</h1>
+    <p class="mt-1.5 text-fg-2">This paste is password-protected. Enter the password to view it.</p>
+    <form action="/{{.Paste.ID}}/unlock" method="post" class="mt-6">
+      <label for="password" class="label">Password</label>
+      <input id="password" name="password" type="password" class="input" required maxlength="256" autocomplete="current-password" autofocus
+             {{if .Error}}aria-invalid="true" aria-describedby="unlock-error"{{end}}>
+      {{- if .Error}}
+      <p id="unlock-error" role="alert" class="mt-2 text-[13px] text-danger">{{.Error}}</p>
+      {{- end}}
+      <button type="submit" class="btn btn-primary btn-lg mt-4 w-full">Unlock</button>
+    </form>
+  </div>
+</section>
+{{end}}

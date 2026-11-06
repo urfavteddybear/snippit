@@ -1,0 +1,50 @@
+# Snippit: Go app + Nginx reverse proxy.
+# Usage: cp .env.example .env && docker compose up -d --build
+name: snippit
+
+services:
+  snippit:
+    build: .
+    image: snippit:latest
+    restart: unless-stopped
+    environment:
+      SNIPPIT_BASE_URL: ${SNIPPIT_BASE_URL:-}
+      SNIPPIT_TRUST_PROXY: "true" # X-Real-IP is set by the nginx service below
+      SNIPPIT_MAX_PASTE_BYTES: ${SNIPPIT_MAX_PASTE_BYTES:-524288}
+      SNIPPIT_MAX_TOTAL_BYTES: ${SNIPPIT_MAX_TOTAL_BYTES:-1073741824}
+      SNIPPIT_RATE_LIMIT_PER_MINUTE: ${SNIPPIT_RATE_LIMIT_PER_MINUTE:-10}
+      SNIPPIT_RATE_LIMIT_BURST: ${SNIPPIT_RATE_LIMIT_BURST:-5}
+      SNIPPIT_CLEANUP_INTERVAL: ${SNIPPIT_CLEANUP_INTERVAL:-10m}
+      SNIPPIT_GITHUB_URL: ${SNIPPIT_GITHUB_URL:-}
+    volumes:
+      - snippit-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp # SQLite temp files
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    expose:
+      - "8080" # reachable only through nginx
+    stop_grace_period: 25s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      snippit:
+        condition: service_healthy
+    ports:
+      - "${SNIPPIT_PORT:-8080}:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  snippit-data:

@@ -1,0 +1,11 @@
+{{define "page"}}error{{end}}
+{{define "content"}}
+<section class="container-page flex flex-1 justify-center pb-16 pt-20 text-center sm:pt-28">
+  <div class="max-w-[440px]">
+    <p class="font-mono text-[13px] text-muted">{{.Status}}</p>
+    <h1 class="mt-2 text-[24px] font-[650] tracking-tight">{{.Heading}}</h1>
+    <p class="mt-2 text-fg-2">{{.Message}}</p>
+    <a href="/" class="btn btn-primary btn-lg mt-8">Create a new paste</a>
+  </div>
+</section>
+{{end}}

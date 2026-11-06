@@ -1,0 +1,62 @@
+{{define "page"}}home{{end}}
+{{define "content"}}
+<h1 class="sr-only">Create a paste</h1>
+<form id="paste-form" action="/pastes" method="post" novalidate
+      class="container-page flex flex-1 flex-col pb-2"
+      hx-post="/pastes" hx-target="#form-error" hx-swap="innerHTML"
+      hx-disabled-elt="#submit" hx-indicator="#submit"
+      data-max-bytes="{{.MaxBytes}}">
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="language" class="sr-only">Language</label>
+      <select id="language" name="language" class="select w-full">
+        <option value="auto"{{if eq .Form.Language "auto"}} selected{{end}}>Auto-detect</option>
+        {{- range .Languages}}
+        <option value="{{.ID}}"{{if eq .ID $.Form.Language}} selected{{end}}>{{.Name}}</option>
+        {{- end}}
+      </select>
+    </div>
+    <div class="field-sm">
+      <label for="expiration" class="sr-only">Expiration</label>
+      <select id="expiration" name="expiration" class="select w-full">
+        {{- range .Expirations}}
+        <option value="{{.Key}}"{{if eq .Key $.Form.Expiration}} selected{{end}}>{{if eq .Key "never"}}Never expire{{else}}Expire in {{.Label}}{{end}}</option>
+        {{- end}}
+      </select>
+    </div>
+    <div class="field-sm">
+      <label for="password" class="sr-only">Password (optional)</label>
+      <input id="password" name="password" type="password" class="input" placeholder="Password (optional)"
+             maxlength="256" autocomplete="new-password"
+             title="Encrypts the content. Anyone viewing the paste needs this password. The title stays visible.">
+    </div>
+    <div class="field-sm">
+      <label for="delete_key" class="sr-only">Delete key (optional)</label>
+      <input id="delete_key" name="delete_key" type="password" class="input" placeholder="Delete key (optional)"
+             maxlength="256" autocomplete="off"
+             title="Lets you delete this paste later from any browser.">
+    </div>
+    <span id="size-counter" class="counter ml-auto hidden sm:inline"></span>
+    <button id="submit" type="submit" class="btn btn-primary">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Create Paste</span>
+      <span class="kbd-hint btn-label-idle hidden sm:inline">Ctrl+⏎</span>
+    </button>
+  </div>
+
+  <div id="form-error" role="alert" class="pt-3 text-[13px] text-danger empty:pt-0">{{.Error}}</div>
+
+  <div class="pt-3">
+    <label for="title" class="sr-only">Title (optional)</label>
+    <input id="title" name="title" class="title-input" placeholder="Title (optional)" maxlength="120" value="{{.Form.Title}}" autocomplete="off">
+  </div>
+
+  <div class="editor-frame mt-3">
+    <div id="editor" class="editor-mount" hidden></div>
+    <label for="content" class="sr-only">Content</label>
+    <textarea id="content" name="content" class="editor-fallback" placeholder="Paste your code here..." spellcheck="false" required>
+{{.Form.Content}}</textarea>
+  </div>
+</form>
+{{end}}
