@@ -191,7 +191,7 @@ func TestQuota(t *testing.T) {
 
 func TestGetRejectsMalformedIDs(t *testing.T) {
 	svc, _ := newService(t, 1024, 0)
-	for _, id := range []string{"", "../../etc", "abc", "abcdefghij'", "abcdefghi/"} {
+	for _, id := range []string{"", "../../etc", "abc", "abcde", "abcdefghijk", "abcdefghij'", "abcdefghi/"} {
 		if _, err := svc.Get(context.Background(), id); !errors.Is(err, paste.ErrNotFound) {
 			t.Errorf("Get(%q) = %v", id, err)
 		}
@@ -205,7 +205,7 @@ func TestNewIDUnique(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !paste.ValidID(id) || seen[id] {
+		if len(id) != 6 || !paste.ValidID(id) || seen[id] {
 			t.Fatalf("bad or duplicate id %q", id)
 		}
 		seen[id] = true

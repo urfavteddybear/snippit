@@ -138,6 +138,15 @@ func (l *ipLimiter) Allow(ip string) bool {
 	return e.lim.AllowN(now, 1)
 }
 
+// Exhausted reports whether ip has no tokens left, without spending one.
+func (l *ipLimiter) Exhausted(ip string) bool {
+	now := time.Now()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	e, ok := l.entries[ip]
+	return ok && e.lim.TokensAt(now) < 1
+}
+
 func (l *ipLimiter) sweep(idle time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

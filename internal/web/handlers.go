@@ -90,6 +90,21 @@ func (s *Server) bodyLimit() int64 {
 	return int64(s.svc.MaxBytes())*3 + 64*1024
 }
 
+// lookup loads the paste named in the URL. Short IDs are guessable in bulk, so
+// each miss spends a per-IP token; once an IP runs out, every lookup from it is
+// refused until the bucket refills, even for pastes that exist.
+func (s *Server) lookup(r *http.Request) (*paste.Paste, error) {
+	ip := ipFrom(r.Context())
+	if s.miss.Exhausted(ip) {
+		return nil, errRateLimited
+	}
+	p, err := s.svc.Get(r.Context(), chi.URLParam(r, "id"))
+	if errors.Is(err, paste.ErrNotFound) {
+		s.miss.Allow(ip)
+	}
+	return p, err
+}
+
 // ---- HTML pages ----
 
 type homePage struct {
@@ -191,7 +206,7 @@ type viewPage struct {
 }
 
 func (s *Server) handleView(w http.ResponseWriter, r *http.Request) {
-	p, err := s.svc.Get(r.Context(), chi.URLParam(r, "id"))
+	p, err := s.lookup(r)
 	if err != nil {
 		s.renderPasteError(w, r, err)
 		return
@@ -205,7 +220,7 @@ func (s *Server) handleView(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUnlock(w http.ResponseWriter, r *http.Request) {
-	p, err := s.svc.Get(r.Context(), chi.URLParam(r, "id"))
+	p, err := s.lookup(r)
 	if err != nil {
 		s.renderPasteError(w, r, err)
 		return
@@ -298,6 +313,8 @@ func (s *Server) renderPasteError(w http.ResponseWriter, r *http.Request, err er
 		s.renderError(w, r, f.status, "Paste not found", "This paste may have expired, been removed, or the URL may be incorrect.")
 	case http.StatusGone:
 		s.renderError(w, r, f.status, "This paste has expired", "The paste is no longer available.")
+	case http.StatusTooManyRequests:
+		s.renderError(w, r, f.status, "Too many requests", "Please wait a minute and try again.")
 	default:
 		s.renderError(w, r, f.status, "Something went wrong", "We couldn't process your request. Please try again.")
 	}
@@ -333,7 +350,7 @@ func (s *Server) handlePrivacy(w http.ResponseWriter, r *http.Request) {
 
 // openPlain loads a paste for plain-text endpoints, honouring X-Paste-Password.
 func (s *Server) openPlain(w http.ResponseWriter, r *http.Request) (*paste.Paste, string, bool) {
-	p, err := s.svc.Get(r.Context(), chi.URLParam(r, "id"))
+	p, err := s.lookup(r)
 	if err == nil && p.Encrypted && r.Header.Get(passwordHeader) != "" && !s.unlock.Allow(ipFrom(r.Context())) {
 		err = errRateLimited
 	}
@@ -378,7 +395,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleQR(w http.ResponseWriter, r *http.Request) {
-	p, err := s.svc.Get(r.Context(), chi.URLParam(r, "id"))
+	p, err := s.lookup(r)
 	if err != nil {
 		f := s.fail(err)
 		http.Error(w, f.message, f.status)
@@ -472,7 +489,7 @@ func (s *Server) handleAPICreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAPIGet(w http.ResponseWriter, r *http.Request) {
-	p, err := s.svc.Get(r.Context(), chi.URLParam(r, "id"))
+	p, err := s.lookup(r)
 	if err == nil && p.Encrypted && r.Header.Get(passwordHeader) != "" && !s.unlock.Allow(ipFrom(r.Context())) {
 		err = errRateLimited
 	}

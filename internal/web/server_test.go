@@ -33,6 +33,8 @@ func newEnv(t *testing.T, mod func(*config.Config)) *testEnv {
 		CreateBurst:     100,
 		UnlockPerMinute: 600,
 		UnlockBurst:     100,
+		MissPerMinute:   600,
+		MissBurst:       100,
 		MaxConcurrent:   10,
 		RequestTimeout:  5 * time.Second,
 		BaseURL:         "https://snippit.test",
@@ -591,5 +593,53 @@ func TestCreatedTokenOnUnlockPage(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: createdCookie, Value: token})
 	if _, page := e.do(req); !strings.Contains(page, `data-token="`+token+`"`) || strings.Contains(page, ">secret<") {
 		t.Error("unlock page should hand the token to the creator without revealing content")
+	}
+}
+
+func TestNotFoundLimit(t *testing.T) {
+	e := newEnv(t, func(c *config.Config) { c.MissPerMinute, c.MissBurst = 1, 3 })
+	out := e.mustCreate(`{"content":"findable"}`)
+
+	for i := 0; i < 3; i++ {
+		if res, _ := e.get("/raw/Nope" + strings.Repeat("x", i)); res.StatusCode != 404 {
+			t.Fatalf("miss %d = %d", i, res.StatusCode)
+		}
+	}
+	// The scanner's bucket is empty: even a real paste is refused, on every lookup path.
+	for _, p := range []string{"/" + out.ID, "/raw/" + out.ID, "/api/pastes/" + out.ID, "/qr/" + out.ID, "/download/" + out.ID} {
+		if res, _ := e.get(p); res.StatusCode != 429 {
+			t.Errorf("GET %s after misses = %d, want 429", p, res.StatusCode)
+		}
+	}
+
+	// Other clients are unaffected.
+	req := httptest.NewRequest(http.MethodGet, "/raw/"+out.ID, nil)
+	req.RemoteAddr = "198.51.100.20:1234"
+	if res, _ := e.do(req); res.StatusCode != 200 {
+		t.Errorf("other IP = %d", res.StatusCode)
+	}
+}
+
+func TestHitsDoNotSpendMissBudget(t *testing.T) {
+	e := newEnv(t, func(c *config.Config) { c.MissPerMinute, c.MissBurst = 1, 1 })
+	out := e.mustCreate(`{"content":"popular"}`)
+	for i := 0; i < 20; i++ {
+		if res, _ := e.get("/raw/" + out.ID); res.StatusCode != 200 {
+			t.Fatalf("hit %d = %d", i, res.StatusCode)
+		}
+	}
+}
+
+func TestLegacyLongIDStillWorks(t *testing.T) {
+	e := newEnv(t, nil)
+	err := e.db.Insert(context.Background(), &paste.Paste{
+		ID: "LegacyId10", Content: []byte("old link"), Language: "plaintext",
+		CreatedAt: time.Now().UTC(), Size: 8,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res, b := e.get("/raw/LegacyId10"); res.StatusCode != 200 || b != "old link" {
+		t.Fatalf("legacy id = %d %q", res.StatusCode, b)
 	}
 }

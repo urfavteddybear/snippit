@@ -27,9 +27,9 @@
   </table>
   <p>Returns <code>201 Created</code>:</p>
   <pre><code>{
-  "id": "a8Kx92LmQ3",
-  "url": "{{.BaseURL}}/a8Kx92LmQ3",
-  "raw_url": "{{.BaseURL}}/raw/a8Kx92LmQ3",
+  "id": "a8Kx92",
+  "url": "{{.BaseURL}}/a8Kx92",
+  "raw_url": "{{.BaseURL}}/raw/a8Kx92",
   "language": "javascript",
   "expires_at": 1794000000,
   "deletion_token": "…"
@@ -41,14 +41,14 @@
 
   <h3><span class="endpoint"><span class="method">GET</span>/raw/:id</span></h3>
   <p>Returns the original content as <code>text/plain</code>. Password-protected pastes also accept <code>X-Paste-Password</code>.</p>
-  <pre><code>curl -s {{.BaseURL}}/raw/a8Kx92LmQ3 | sh   # read it before you run it</code></pre>
+  <pre><code>curl -s {{.BaseURL}}/raw/a8Kx92 | sh   # read it before you run it</code></pre>
 
   <h3><span class="endpoint"><span class="method">GET</span>/download/:id</span></h3>
   <p>Same as raw, served as a file attachment.</p>
 
   <h3><span class="endpoint"><span class="method">DELETE</span>/api/pastes/:id</span></h3>
   <p>Deletes a paste. Send either the delete key you chose in <code>X-Delete-Key</code>, or the <code>deletion_token</code> from the create response in <code>X-Delete-Token</code>. Returns <code>204 No Content</code>.</p>
-  <pre><code>curl -X DELETE {{.BaseURL}}/api/pastes/a8Kx92LmQ3 -H 'X-Delete-Key: my-secret-key'</code></pre>
+  <pre><code>curl -X DELETE {{.BaseURL}}/api/pastes/a8Kx92 -H 'X-Delete-Key: my-secret-key'</code></pre>
 
   <h2>Errors</h2>
   <p>Errors share one JSON shape:</p>
@@ -75,6 +75,7 @@
   <ul>
     <li>Paste creation is rate-limited per IP address.</li>
     <li>Maximum paste size is {{bytes (int64 .MaxBytes)}}.</li>
+    <li>Requests for pastes that don't exist are rate-limited per IP. Too many misses return <code>429</code> for a while, even for pastes that exist.</li>
   </ul>
 </article>
 {{end}}

@@ -15,8 +15,12 @@ import (
 )
 
 const (
-	idLength   = 10
-	idAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	// New IDs are short for sharing (62^6 ≈ 5.7e10); the web layer rate-limits
+	// lookups that miss so the space cannot be scanned quickly.
+	idLength = 6
+	// IDs up to 10 characters were issued before the switch and stay valid.
+	maxIDLength = 10
+	idAlphabet  = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 	// scrypt cost: 16 MiB of memory per derivation.
 	scryptN = 1 << 14
@@ -29,7 +33,7 @@ const (
 // kdfSlots bounds concurrent scrypt derivations so unlock bursts cannot exhaust memory.
 var kdfSlots = make(chan struct{}, 4)
 
-// NewID returns a random base62 ID (~59 bits of entropy).
+// NewID returns a random base62 ID (~36 bits of entropy).
 func NewID() (string, error) {
 	// Rejection sampling keeps the distribution uniform: 248 = 4*62.
 	out := make([]byte, 0, idLength)
@@ -52,7 +56,7 @@ func NewID() (string, error) {
 
 // ValidID reports whether s has the shape of a paste ID.
 func ValidID(s string) bool {
-	if len(s) != idLength {
+	if len(s) < idLength || len(s) > maxIDLength {
 		return false
 	}
 	for i := 0; i < len(s); i++ {

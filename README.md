@@ -52,12 +52,16 @@ These are also read by the app but not wired into `docker-compose.yml`. Add them
 | `SNIPPIT_DB_PATH`                 | `data/snippit.db`  | SQLite file (`/data/snippit.db` in the image)                |
 | `SNIPPIT_UNLOCK_LIMIT_PER_MINUTE` | `10`               | Password and delete-key attempts per minute per IP           |
 | `SNIPPIT_UNLOCK_LIMIT_BURST`      | `5`                | Burst allowance for those attempts                           |
+| `SNIPPIT_NOTFOUND_LIMIT_PER_MINUTE` | `30`             | Lookups of nonexistent pastes per minute per IP              |
+| `SNIPPIT_NOTFOUND_LIMIT_BURST`    | `30`               | Burst allowance for those lookups                            |
 | `SNIPPIT_MAX_CONCURRENT`          | `100`              | Requests handled at once before queueing                     |
 | `SNIPPIT_REQUEST_TIMEOUT`         | `15s`              | Per-request timeout                                          |
 
 ## Production notes
 
 **HTTPS.** Snippit serves plain HTTP. For a public deployment, put it behind something that terminates TLS: your existing reverse proxy (Caddy, Traefik, Nginx), a load balancer, or a tunnel such as Cloudflare Tunnel. Set `SNIPPIT_BASE_URL` to the `https://` origin.
+
+**Paste links.** Links use 6-character random IDs (about 57 billion combinations) so they are short to share. To keep the space from being scanned, each client IP gets a budget of lookups that hit no paste (`SNIPPIT_NOTFOUND_LIMIT_*`). When it runs out, every paste lookup from that IP returns `429` until the budget refills. A scanner spread over many IPs is slowed down, not stopped, so use a password for anything sensitive. Links created before the switch to 6 characters keep working.
 
 **Hardening.** The container runs read-only with `no-new-privileges`, as a non-root user in a distroless image with all capabilities dropped.
 

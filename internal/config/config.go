@@ -19,6 +19,8 @@ type Config struct {
 	CreateBurst     int
 	UnlockPerMinute float64
 	UnlockBurst     int
+	MissPerMinute   float64 // lookups of nonexistent pastes, per IP
+	MissBurst       int
 	TrustProxy      bool // read client IP from X-Real-IP (set by a trusted reverse proxy)
 	MaxConcurrent   int
 	RequestTimeout  time.Duration
@@ -38,6 +40,8 @@ func Load() (Config, error) {
 		CreateBurst:     5,
 		UnlockPerMinute: 10,
 		UnlockBurst:     5,
+		MissPerMinute:   30,
+		MissBurst:       30,
 		MaxConcurrent:   100,
 		RequestTimeout:  15 * time.Second,
 		CleanupInterval: 10 * time.Minute,
@@ -60,6 +64,8 @@ func Load() (Config, error) {
 	set("SNIPPIT_RATE_LIMIT_BURST", intVar(&c.CreateBurst))
 	set("SNIPPIT_UNLOCK_LIMIT_PER_MINUTE", floatVar(&c.UnlockPerMinute))
 	set("SNIPPIT_UNLOCK_LIMIT_BURST", intVar(&c.UnlockBurst))
+	set("SNIPPIT_NOTFOUND_LIMIT_PER_MINUTE", floatVar(&c.MissPerMinute))
+	set("SNIPPIT_NOTFOUND_LIMIT_BURST", intVar(&c.MissBurst))
 	set("SNIPPIT_MAX_CONCURRENT", intVar(&c.MaxConcurrent))
 	set("SNIPPIT_TRUST_PROXY", func(v string) (e error) { c.TrustProxy, e = strconv.ParseBool(v); return })
 	set("SNIPPIT_REQUEST_TIMEOUT", durationVar(&c.RequestTimeout))
@@ -71,7 +77,8 @@ func Load() (Config, error) {
 	switch {
 	case c.MaxPasteBytes <= 0:
 		return c, fmt.Errorf("config SNIPPIT_MAX_PASTE_BYTES must be positive")
-	case c.CreatePerMinute <= 0 || c.CreateBurst <= 0 || c.UnlockPerMinute <= 0 || c.UnlockBurst <= 0:
+	case c.CreatePerMinute <= 0 || c.CreateBurst <= 0 || c.UnlockPerMinute <= 0 || c.UnlockBurst <= 0 ||
+		c.MissPerMinute <= 0 || c.MissBurst <= 0:
 		return c, fmt.Errorf("config rate limits must be positive")
 	case c.MaxConcurrent <= 0:
 		return c, fmt.Errorf("config SNIPPIT_MAX_CONCURRENT must be positive")

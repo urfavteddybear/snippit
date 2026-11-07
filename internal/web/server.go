@@ -34,6 +34,7 @@ type Server struct {
 	static  fs.FS
 	create  *ipLimiter
 	unlock  *ipLimiter
+	miss    *ipLimiter // lookups of pastes that do not exist
 	handler http.Handler
 }
 
@@ -55,6 +56,7 @@ func New(cfg config.Config, svc *paste.Service, db Pinger, log *slog.Logger) (*S
 		static: static,
 		create: newIPLimiter(cfg.CreatePerMinute, cfg.CreateBurst),
 		unlock: newIPLimiter(cfg.UnlockPerMinute, cfg.UnlockBurst),
+		miss:   newIPLimiter(cfg.MissPerMinute, cfg.MissBurst),
 	}
 	s.handler = s.routes()
 	return s, nil
@@ -73,6 +75,7 @@ func (s *Server) SweepLimiters(ctx context.Context) {
 		case <-t.C:
 			s.create.sweep(10 * time.Minute)
 			s.unlock.sweep(10 * time.Minute)
+			s.miss.sweep(10 * time.Minute)
 		}
 	}
 }
