@@ -19,7 +19,7 @@ type Config struct {
 	CreateBurst     int
 	UnlockPerMinute float64
 	UnlockBurst     int
-	TrustProxy      bool // read client IP from X-Real-IP (set by Nginx)
+	TrustProxy      bool // read client IP from X-Real-IP (set by a trusted reverse proxy)
 	MaxConcurrent   int
 	RequestTimeout  time.Duration
 	CleanupInterval time.Duration
