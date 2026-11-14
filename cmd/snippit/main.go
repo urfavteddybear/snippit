@@ -5,6 +5,7 @@
 //	snippit                 run the HTTP server
 //	snippit backup <file>   write a consistent database snapshot to <file>
 //	snippit healthcheck     exit 0 when the local server is healthy (for Docker)
+//	snippit version         print the version
 package main
 
 import (
@@ -25,6 +26,9 @@ import (
 	"snippit/internal/web"
 )
 
+// version is set at build time with -ldflags "-X main.version=v1.2.3".
+var version = "dev"
+
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	if err := run(log, os.Args[1:]); err != nil {
@@ -34,6 +38,10 @@ func main() {
 }
 
 func run(log *slog.Logger, args []string) error {
+	if len(args) > 0 && (args[0] == "version" || args[0] == "--version") {
+		fmt.Println("snippit", version)
+		return nil
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -94,7 +102,7 @@ func run(log *slog.Logger, args []string) error {
 	}
 	errc := make(chan error, 1)
 	go func() {
-		log.Info("listening", "addr", cfg.Addr)
+		log.Info("listening", "addr", cfg.Addr, "version", version, "db", cfg.DBPath)
 		errc <- httpSrv.ListenAndServe()
 	}()
 

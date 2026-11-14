@@ -1,0 +1,59 @@
+# systemd unit for running Snippit without Docker.
+#
+# Install:
+#   sudo install -m 755 snippit /usr/local/bin/snippit
+#   sudo useradd --system --home-dir /var/lib/snippit --shell /usr/sbin/nologin snippit
+#   sudo install -d -m 755 /etc/snippit
+#   sudo install -m 640 -g snippit snippit.env /etc/snippit/snippit.env
+#   sudo install -m 644 snippit.service /etc/systemd/system/snippit.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now snippit
+
+[Unit]
+Description=Snippit pastebin
+Documentation=https://github.com/urfavteddybear/snippit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=snippit
+Group=snippit
+ExecStart=/usr/local/bin/snippit
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=25s
+
+# Creates /var/lib/snippit owned by the service user.
+StateDirectory=snippit
+StateDirectoryMode=0750
+Environment=SNIPPIT_DB_PATH=/var/lib/snippit/snippit.db
+EnvironmentFile=-/etc/snippit/snippit.env
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

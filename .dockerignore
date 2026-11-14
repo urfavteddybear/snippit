@@ -8,3 +8,4 @@ data/
 frontend/node_modules/
 internal/web/static/
 backups/
+dist/

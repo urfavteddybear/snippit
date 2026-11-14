@@ -28,9 +28,66 @@ The stack is a single `snippit` container, published on host port `SNIPPIT_PORT`
 
 Pastes are stored in the `snippit-data` named volume, so they survive `docker compose down` and container rebuilds. `docker compose down -v` deletes the volume and every paste in it.
 
+## Without Docker
+
+Snippit is a single binary with the web assets built in. It needs no Go, Node.js or database server at runtime.
+
+### 1. Get the binary
+
+Download the archive for your platform from [Releases](https://github.com/urfavteddybear/snippit/releases): Linux, macOS and Windows on amd64 and arm64. Check it against `SHA256SUMS`, then extract it:
+
+```bash
+tar -xzf snippit_<version>_linux_amd64.tar.gz
+cd snippit_<version>_linux_amd64
+./snippit version
+```
+
+Or build from source (Go 1.27+, Node.js 24+):
+
+```bash
+git clone https://github.com/urfavteddybear/snippit.git
+cd snippit
+make build        # produces ./snippit
+```
+
+### 2. Run it
+
+```bash
+./snippit
+```
+
+It listens on `:8080` and creates its database at `data/snippit.db`, relative to the current directory. Configure it with environment variables. `snippit.env` in the archive lists them all:
+
+```bash
+set -a; . ./snippit.env; set +a
+./snippit
+```
+
+On Windows, run `snippit.exe` and set variables with `set NAME=value` (cmd) or `$env:NAME="value"` (PowerShell).
+
+### 3. Run as a service (Linux, systemd)
+
+The Linux archive includes `snippit.service`, which runs Snippit as a dedicated `snippit` user with the database in `/var/lib/snippit` and a hardened sandbox:
+
+```bash
+sudo install -m 755 snippit /usr/local/bin/snippit
+sudo useradd --system --home-dir /var/lib/snippit --shell /usr/sbin/nologin snippit
+sudo install -d -m 755 /etc/snippit
+sudo install -m 640 -g snippit snippit.env /etc/snippit/snippit.env
+sudo install -m 644 snippit.service /etc/systemd/system/snippit.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now snippit
+```
+
+Edit `/etc/snippit/snippit.env` to change settings, then `sudo systemctl restart snippit`. Logs: `journalctl -u snippit -f`.
+
+To upgrade, replace `/usr/local/bin/snippit` and restart the service. Database migrations run automatically on startup.
+
+For HTTPS, put a reverse proxy in front and set `SNIPPIT_ADDR=127.0.0.1:8080`. See [Behind a reverse proxy](#behind-a-reverse-proxy).
+
 ## Configuration
 
-Set these in `.env`. Compose passes them to the app.
+With Docker, set these in `.env` and Compose passes them to the app. Without Docker, set them as environment variables (see `deploy/snippit.env`).
 
 | Variable                        | Default      | Description                                                         |
 |---------------------------------|--------------|---------------------------------------------------------------------|
@@ -101,7 +158,9 @@ Cloudflare (proxy or Tunnel) does not send `X-Real-IP`. Add a Request Header Tra
 
 ## Backups
 
-The `backup` subcommand writes a consistent snapshot while the server keeps running:
+The `backup` subcommand writes a consistent snapshot while the server keeps running. It reads `SNIPPIT_DB_PATH` to find the database.
+
+### Docker
 
 ```bash
 make backup
@@ -116,6 +175,25 @@ make restore FILE=backups/snippit-20261106-120000.db
 ```
 
 This stops the app, replaces `/data/snippit.db` in the volume with the backup, and starts the app again. Every paste created after that backup is lost.
+
+### systemd
+
+Run the backup as the service user, so any SQLite files it touches keep the right owner:
+
+```bash
+sudo install -d -o snippit -g snippit -m 750 /var/backups/snippit
+sudo -u snippit SNIPPIT_DB_PATH=/var/lib/snippit/snippit.db \
+  /usr/local/bin/snippit backup /var/backups/snippit/snippit-$(date +%Y%m%d-%H%M%S).db
+```
+
+To restore:
+
+```bash
+sudo systemctl stop snippit
+sudo -u snippit cp /var/backups/snippit/<file>.db /var/lib/snippit/snippit.db
+sudo -u snippit rm -f /var/lib/snippit/snippit.db-wal /var/lib/snippit/snippit.db-shm
+sudo systemctl start snippit
+```
 
 Deleting a paste removes it from the live database. Earlier backups still contain it until they are rotated.
 
@@ -164,7 +242,10 @@ Requirements: Go 1.27+, Node.js 24+.
 ```bash
 make run    # build frontend assets and the binary, serve on :8080
 make test   # go vet + go test -race
+make dist   # release archives for every platform in dist/
 ```
+
+Pushing a `v*` tag (e.g. `git tag v1.0.0 && git push origin v1.0.0`) runs `.github/workflows/release.yml`, which tests, builds the archives and publishes a GitHub release.
 
 The frontend lives in `frontend/` and is bundled by esbuild and the Tailwind CLI into `internal/web/static/`, which is embedded into the binary. That directory is generated and not committed, so run `make assets` (or any target above) after cloning, before running `go build` or `go test` directly. For live CSS/JS rebuilds, run `cd frontend && npm run watch` and restart the Go server after changes.
 
@@ -175,6 +256,8 @@ internal/paste/       domain: validation, IDs, encryption, language detection
 internal/store/       SQLite repository and migrations
 internal/web/         HTTP handlers, middleware, templates
 frontend/             CodeMirror, HTMX and Tailwind sources
+deploy/               systemd unit and env file for running without Docker
+scripts/dist.sh       cross-compiles release archives
 ```
 
 ## Privacy
